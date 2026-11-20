@@ -28,7 +28,6 @@ var
     VATPostingSetup: Record "VAT Posting Setup";
     SalesSetup: Record "Sales & Receivables Setup";
 begin
-    // 1. Accounting Period
     if AccountingPeriod.IsEmpty() then begin
         AccountingPeriod.Init();
         AccountingPeriod."Starting Date" := DMY2Date(1, 1, 2026);
@@ -37,17 +36,14 @@ begin
         AccountingPeriod.Insert();
     end;
 
-    // 2. Number Series
     EnsureNoSeries('CUST', 'C0000', CustNoSeries, CustNoSeriesLine);
     EnsureNoSeries('S-INV', 'SI0000', InvNoSeries, InvNoSeriesLine);
     EnsureNoSeries('S-PINV', 'PSI0000', PostInvNoSeries, PostInvNoSeriesLine);
 
-    // 3. G/L Accounts
     EnsureGLAccount('1200', 'Accounts Receivable', false, GLReceivable);
     EnsureGLAccount('4100', 'Sales Revenue', true, GLSales);
     EnsureGLAccount('2310', 'Sales VAT Payable', true, GLVAT);
 
-    // 4. Posting Groups & Setups
     if not CustPostingGroup.Get('DOMESTIC') then begin
         CustPostingGroup.Init();
         CustPostingGroup.Code := 'DOMESTIC';
@@ -97,7 +93,6 @@ begin
         VATPostingSetup.Insert();
     end;
 
-    // 5. Sales & Receivables Setup
     if not SalesSetup.Get() then begin
         SalesSetup.Init();
         SalesSetup.Insert();
@@ -107,7 +102,6 @@ begin
     SalesSetup."Posted Invoice Nos." := 'S-PINV';
     SalesSetup.Modify();
 
-    // 6. Sync-Enabled Customer
     if not SyncCustomer.Get('C0001') then begin
         SyncCustomer.Init();
         SyncCustomer."No." := 'C0001';

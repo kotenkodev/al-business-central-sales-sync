@@ -10,67 +10,6 @@ The data layer, posting subscribers, G/L code propagation, and batch processor a
 
 The current manifest names the app `WBC Business Central Sync`, targets application version `29.1.57326.58076` and runtime `18.0`, and reserves object IDs `50200`–`50249`.
 
-## Learning workflow
-
-- Write the AL implementation yourself; mentoring provides requirements, acceptance criteria, exploration hints, and code reviews rather than complete solutions.
-- Complete and review each milestone before starting the next.
-- Explore the installed Base App symbols with `Ctrl+T` and `F12`; verify event signatures against the local version before subscribing.
-- Explain the ERP behavior behind the code: posted documents and ledgers, cost relationships, and transaction rollback.
-- Review applicable use of `SetLoadFields`, secondary keys, `DataClassification`, `GuiAllowed()`, indirect permissions, CodeCop, and AppSourceCop.
-- Keep operational logic headless. The debug seed page is a development convenience, not an operational sync UI.
-
-## Roadmap
-
-### Milestone 1 — Data layer and triggers
-
-- [x] Create enum `Sync Queue Status`: Pending, Processed, Failed.
-- [x] Create table `Sync Queue Entry` with an auto-incrementing entry number, document type/number, customer number, amount, cost amount, status, created/processed timestamps, and error message.
-- [x] Add secondary keys for status-based processing and customer/status filtering.
-- [x] Default Status to Pending with `InitValue`; in `OnInsert`, populate the creation timestamp only when blank. Preserve explicitly supplied status, timestamps, and error details.
-- [x] Extend `Customer` with `External Sync Enabled` and `External Sync Code` (`Code[20]`).
-- [x] Validate that a nonblank sync code requires sync to be enabled; prevent disabling sync until the code is cleared. Enabling with a blank code is allowed at this stage.
-- [x] Add a non-editable `Pending Sync Count` FlowField counting this customer's Pending queue entries.
-- [x] Add captions, data classifications, and the customer table relation.
-
-Acceptance: objects compile; insertion with triggers enabled initializes the entry correctly; cross-field validation works in both directions; calculating the FlowField excludes other customers and non-Pending entries and reflects status changes. No UI calls are introduced.
-
-Milestone 1 checks are in `tests/WBCSyncQueueDataTests.Codeunit.al` (codeunit 50203). Run through a Business Central test runner with test isolation enabled so database changes are rolled back. These tests use generated customers, require the declared test-library dependencies, and do not require custom pages. Building compiles the tests but does not execute them.
-
-### Milestone 2 — Standard posting and G/L event hooks
-
-- [x] Subscribe to codeunit 80 `Sales-Post` to require `External Document No.` for sync-enabled customers before posting, skipping this custom check in preview mode.
-- [x] Enqueue posted sales invoices and credit memos after posting, using the posted document identifiers.
-- [x] Calculate actual cost from the relevant `Value Entry` records.
-- [x] Extend the required posting records and propagate `External Sync Code` to `G/L Entry` through the journal posting pipeline.
-- [x] Subscribe to `Sales-Post.OnBeforePostSalesDoc` and `OnAfterPostSalesDoc`; propagate the customer code through `Gen. Journal Line.OnAfterCopyGenJnlLineFromSalesHeader` and `Gen. Jnl.-Post Line.OnAfterInitGLEntry`.
-
-Acceptance: qualifying invoices and credit memos produce correct queue records; the missing-reference rule blocks actual posting; preview creates no persistent queue records; the sync code reaches the relevant G/L entries.
-
-Learning focus: how source documents become posted documents, how Value Entries relate to Item Ledger Entries and G/L Entries, and why posting and queue insertion must respect the same transaction boundary.
-
-### Milestone 3 — Headless batch processing and transaction isolation
-
-- [x] Create a single-entry processor codeunit with `TableNo = "WBC Sync Queue Entry"`; validate data, raise an error for invalid entries, and mark successful entries Processed.
-- [x] Create a batch runner with `TableNo = "Job Queue Entry"` using `FindSet`.
-- [ ] Add `SetLoadFields` to the batch runner where appropriate.
-- [x] Use the Boolean result of `Processor.Run(Rec)` to isolate each entry's failure; establish transaction boundaries before invoking it.
-- [x] Capture failure details and persist Failed status without aborting the remaining batch. Review immediate error capture before subsequent database calls.
-- [ ] Guard any optional UI calls with `GuiAllowed()` and publish a custom integration event after batch completion.
-
-Acceptance: a batch containing valid and invalid entries processes the valid entries, rolls back failed processing work, and retains failure details. Background execution requires no user interaction.
-
-### Milestone 4 — Permissions and headless automated tests
-
-- [ ] Create a permission set and apply appropriate indirect `TableData` permissions to subscriber and processor codeunits.
-- [ ] Use `Library - Sales`, `Library - Inventory`, and `Assert` to create test data without hardcoded master data IDs.
-- [ ] Test invoice and credit memo queueing and the customer Pending count.
-- [ ] Test validation blocking with `asserterror`.
-- [ ] Test per-record batch failure isolation and persisted error details.
-- [ ] Test G/L sync-code propagation.
-- [ ] Add a `MessageHandler` test for an optional GUI-allowed message path while retaining headless batch behavior.
-
-Acceptance: automated tests cover the posting and batch flows, required permissions are documented and verified, and applicable analyzer findings are reviewed.
-
 ## How the extension works
 
 1. Enable `WBC External Sync Enabled` on a customer and provide `WBC External Sync Code`. The code identifies the customer externally; it is different from a document's `External Document No.`. These customer fields have no custom maintenance page. Set them through AL validation, an appropriate import, or a future API. The seed helper configures customer `C0001` when it creates that customer.

@@ -10,6 +10,7 @@ codeunit 50209 "WBC Sync Queue Batch Runner"
         Processor: Codeunit "WBC Sync Queue Processor";
     begin
         SyncQueueEntry.SetRange(Status, SyncQueueEntry.Status::Pending);
+        SyncQueueEntry.SetLoadFields("Entry No.", "Document Type", "Document No.", "Customer No.", Amount, "Cost Amount", Status);
         if not SyncQueueEntry.FindSet() then
             exit;
 

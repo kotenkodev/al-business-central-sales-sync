@@ -12,14 +12,11 @@ codeunit 50210 "WBC Outbound Sync Tests"
         SalesHeader: Record "Sales Header";
         SalesLine: Record "Sales Line";
     begin
-        // [GIVEN] A sync-enabled customer and a Sales Invoice without External Document No.
         CreateSyncCustomer(Customer, true, 'SYNC-01');
         CreateSalesInvoice(SalesHeader, SalesLine, Customer."No.", '');
 
-        // [WHEN] Posting the Sales Invoice
         asserterror Codeunit.Run(Codeunit::"Sales-Post", SalesHeader);
 
-        // [THEN] Posting fails with a validation error on External Document No.
         if StrPos(GetLastErrorText(), SalesHeader.FieldCaption("External Document No.")) = 0 then
             Error('Unexpected error: %1', GetLastErrorText());
     end;
@@ -34,18 +31,15 @@ codeunit 50210 "WBC Outbound Sync Tests"
         GLEntry: Record "G/L Entry";
         PostedInvNo: Code[20];
     begin
-        // [GIVEN] A sync-enabled customer with External Sync Code and a valid Sales Invoice
         CreateSyncCustomer(Customer, true, 'SYNC-99');
         CreateSalesInvoice(SalesHeader, SalesLine, Customer."No.", 'EXT-INV-100');
 
-        // [WHEN] Posting the Sales Invoice as a standalone statement (allows Sales-Post commits)
         Codeunit.Run(Codeunit::"Sales-Post", SalesHeader);
 
         SyncQueueEntry.SetRange("Customer No.", Customer."No.");
         SyncQueueEntry.FindLast();
         PostedInvNo := SyncQueueEntry."Document No.";
 
-        // [THEN] A Pending queue entry exists with positive Amount
         if SyncQueueEntry."Document Type" <> SyncQueueEntry."Document Type"::Invoice then
             Error(AssertErr, 'Document Type', SyncQueueEntry."Document Type"::Invoice, SyncQueueEntry."Document Type");
         if SyncQueueEntry.Status <> SyncQueueEntry.Status::Pending then
@@ -53,11 +47,55 @@ codeunit 50210 "WBC Outbound Sync Tests"
         if SyncQueueEntry.Amount <= 0 then
             Error('Expected positive Amount, got %1', SyncQueueEntry.Amount);
 
-        // [THEN] Resulting G/L Entries carry the customer's External Sync Code
         GLEntry.SetRange("Document No.", PostedInvNo);
         GLEntry.SetRange("WBC External Sync Code", 'SYNC-99');
         if GLEntry.IsEmpty() then
             Error('Expected G/L Entries for invoice %1 to have External Sync Code SYNC-99.', PostedInvNo);
+    end;
+
+    [Test]
+    procedure TestPreviewPostingDoesNotQueueDocument()
+    var
+        Customer: Record Customer;
+        SalesHeader: Record "Sales Header";
+        SalesLine: Record "Sales Line";
+        SalesPost: Codeunit "Sales-Post";
+        SyncQueueEntry: Record "WBC Sync Queue Entry";
+        EntriesBeforePreview: Integer;
+    begin
+        CreateSyncCustomer(Customer, true, 'SYNC-PREVIEW');
+        CreateSalesInvoice(SalesHeader, SalesLine, Customer."No.", 'EXT-PREVIEW-1');
+        SyncQueueEntry.SetRange("Customer No.", Customer."No.");
+        EntriesBeforePreview := SyncQueueEntry.Count();
+
+        SalesPost.SetPreviewMode(true);
+        asserterror SalesPost.Run(SalesHeader);
+        if StrPos(GetLastErrorText(), 'Preview mode.') = 0 then
+            Error('Unexpected preview error: %1', GetLastErrorText());
+
+        if SyncQueueEntry.Count() <> EntriesBeforePreview then
+            Error('Preview posting must not create a sync queue entry.');
+    end;
+
+    [Test]
+    procedure TestPostingQueuesCreditMemoWithNegativeAmount()
+    var
+        Customer: Record Customer;
+        SalesHeader: Record "Sales Header";
+        SalesLine: Record "Sales Line";
+        SyncQueueEntry: Record "WBC Sync Queue Entry";
+    begin
+        CreateSyncCustomer(Customer, true, 'SYNC-CM');
+        CreateSalesDocument(SalesHeader, SalesLine, Customer."No.", 'EXT-CM-100', SalesHeader."Document Type"::"Credit Memo");
+
+        Codeunit.Run(Codeunit::"Sales-Post", SalesHeader);
+
+        SyncQueueEntry.SetRange("Customer No.", Customer."No.");
+        SyncQueueEntry.FindLast();
+        if SyncQueueEntry."Document Type" <> SyncQueueEntry."Document Type"::"Credit Memo" then
+            Error(AssertErr, 'Document Type', SyncQueueEntry."Document Type"::"Credit Memo", SyncQueueEntry."Document Type");
+        if SyncQueueEntry.Amount >= 0 then
+            Error('Expected negative credit memo Amount, got %1', SyncQueueEntry.Amount);
     end;
 
     [Test]
@@ -72,15 +110,6 @@ codeunit 50210 "WBC Outbound Sync Tests"
         JobQueueEntry: Record "Job Queue Entry";
         BatchRunner: Codeunit "WBC Sync Queue Batch Runner";
     begin
-        // [GIVEN] One valid posted invoice in Pending state
-        CreateSyncCustomer(ValidCust, true, 'SYNC-OK');
-        CreateSalesInvoice(SalesHeader, SalesLine, ValidCust."No.", 'EXT-OK-1');
-        Codeunit.Run(Codeunit::"Sales-Post", SalesHeader);
-
-        ValidQueueEntry.SetRange("Customer No.", ValidCust."No.");
-        ValidQueueEntry.FindLast();
-
-        // [GIVEN] One Pending queue entry whose customer has sync disabled
         CreateSyncCustomer(DisabledCust, false, '');
         FailedQueueEntry.Init();
         FailedQueueEntry."Document Type" := FailedQueueEntry."Document Type"::Invoice;
@@ -89,10 +118,15 @@ codeunit 50210 "WBC Outbound Sync Tests"
         FailedQueueEntry.Amount := 100;
         FailedQueueEntry.Insert(true);
 
-        // [WHEN] Running the headless Batch Runner
+        CreateSyncCustomer(ValidCust, true, 'SYNC-OK');
+        CreateSalesInvoice(SalesHeader, SalesLine, ValidCust."No.", 'EXT-OK-1');
+        Codeunit.Run(Codeunit::"Sales-Post", SalesHeader);
+
+        ValidQueueEntry.SetRange("Customer No.", ValidCust."No.");
+        ValidQueueEntry.FindLast();
+
         BatchRunner.Run(JobQueueEntry);
 
-        // [THEN] Valid entry is Processed, invalid entry is Failed with an Error Message
         ValidQueueEntry.Find();
         if ValidQueueEntry.Status <> ValidQueueEntry.Status::Processed then
             Error(AssertErr, 'ValidQueueEntry.Status', ValidQueueEntry.Status::Processed, ValidQueueEntry.Status);
@@ -121,6 +155,11 @@ codeunit 50210 "WBC Outbound Sync Tests"
     end;
 
     local procedure CreateSalesInvoice(var SalesHeader: Record "Sales Header"; var SalesLine: Record "Sales Line"; CustNo: Code[20]; ExtDocNo: Code[35])
+    begin
+        CreateSalesDocument(SalesHeader, SalesLine, CustNo, ExtDocNo, SalesHeader."Document Type"::Invoice);
+    end;
+
+    local procedure CreateSalesDocument(var SalesHeader: Record "Sales Header"; var SalesLine: Record "Sales Line"; CustNo: Code[20]; ExtDocNo: Code[35]; DocumentType: Enum "Sales Document Type")
     var
         Customer: Record Customer;
         GenPostingSetup: Record "General Posting Setup";
@@ -145,7 +184,7 @@ codeunit 50210 "WBC Outbound Sync Tests"
         end;
 
         SalesHeader.Init();
-        SalesHeader."Document Type" := SalesHeader."Document Type"::Invoice;
+        SalesHeader."Document Type" := DocumentType;
         SalesHeader.Insert(true);
         SalesHeader.Validate("Sell-to Customer No.", CustNo);
         SalesHeader."External Document No." := ExtDocNo;
