@@ -38,11 +38,11 @@ Milestone 1 checks are in `tests/WBCSyncQueueDataTests.Codeunit.al` (codeunit 50
 
 ### Milestone 2 — Standard posting and G/L event hooks
 
-- [ ] Subscribe to codeunit 80 `Sales-Post` to require `External Document No.` for sync-enabled customers before posting, skipping this custom check in preview mode.
-- [ ] Enqueue posted sales invoices and credit memos after posting, using the posted document identifiers.
-- [ ] Calculate actual cost from the relevant `Value Entry` records.
-- [ ] Extend the required posting records and propagate `External Sync Code` to `G/L Entry` through the journal posting pipeline.
-- [ ] Inspect `OnBeforePostSalesDoc`, `OnAfterPostSalesDoc`, and the available journal/G/L initialization publishers, including `OnAfterInitGenJnlLine` and `OnAfterInitGLEntry`; confirm their owning objects, signatures, and execution paths in the installed symbols.
+- [x] Subscribe to codeunit 80 `Sales-Post` to require `External Document No.` for sync-enabled customers before posting, skipping this custom check in preview mode.
+- [x] Enqueue posted sales invoices and credit memos after posting, using the posted document identifiers.
+- [x] Calculate actual cost from the relevant `Value Entry` records.
+- [x] Extend the required posting records and propagate `External Sync Code` to `G/L Entry` through the journal posting pipeline.
+- [x] Inspect `OnBeforePostSalesDoc`, `OnAfterPostSalesDoc`, and the available journal/G/L initialization publishers, including `OnAfterInitGenJnlLine` and `OnAfterInitGLEntry`; confirm their owning objects, signatures, and execution paths in the installed symbols.
 
 Acceptance: qualifying invoices and credit memos produce correct queue records; the missing-reference rule blocks actual posting; preview creates no persistent queue records; the sync code reaches the relevant G/L entries.
 
