@@ -1,6 +1,76 @@
-# Business Central AL Development
+# Outbound Sales Sync Queue
 
-This workspace contains an AL extension for Microsoft Dynamics 365 Business Central. It uses Docker for a local Business Central server and VS Code for building and debugging the extension.
+A planned zero-UI (headless) AL extension for Microsoft Dynamics 365 Business Central, developed in a local Docker environment with CRONUS sample data. The project connects AL fundamentals to sales posting, inventory costing, general ledger entries, and background processing.
+
+The intended flow is: validate a sync-enabled customer's sales document, post it through standard Business Central, enqueue the posted invoice or credit memo, and process queue entries independently in a background batch. The processor will initially validate and mark entries as processed; an external HTTP integration is outside the four milestones.
+
+## Project status
+
+Planning and local environment setup. The milestones below describe intended functionality, not completed features. Milestone 1 is the current learning task.
+
+The current manifest names the app `WBC Business Central Sync`, targets application version `29.1.57326.58076` and runtime `18.0`, and reserves object IDs `50200`–`50249`.
+
+## Learning workflow
+
+- Write the AL implementation yourself; mentoring provides requirements, acceptance criteria, exploration hints, and code reviews rather than complete solutions.
+- Complete and review each milestone before starting the next.
+- Explore the installed Base App symbols with `Ctrl+T` and `F12`; verify event signatures against the local version before subscribing.
+- Explain the ERP behavior behind the code: posted documents and ledgers, cost relationships, and transaction rollback.
+- Review applicable use of `SetLoadFields`, secondary keys, `DataClassification`, `GuiAllowed()`, indirect permissions, CodeCop, and AppSourceCop.
+- Keep the extension headless: no custom pages or page extensions are required.
+
+## Roadmap
+
+### Milestone 1 — Data layer and triggers
+
+- [ ] Create enum `Sync Queue Status`: Pending, Processed, Failed.
+- [ ] Create table `Sync Queue Entry` with an auto-incrementing entry number, document type/number, customer number, amount, cost amount, status, created/processed timestamps, and error message.
+- [ ] Add secondary keys for status-based processing and customer/status filtering.
+- [ ] Initialize Pending status and creation time in `OnInsert`; clear processing time and error text.
+- [ ] Extend `Customer` with `External Sync Enabled` and `External Sync Code` (`Code[20]`).
+- [ ] Validate that a nonblank sync code requires sync to be enabled; prevent disabling sync until the code is cleared. Enabling with a blank code is allowed at this stage.
+- [ ] Add a non-editable `Pending Sync Count` FlowField counting this customer's Pending queue entries.
+- [ ] Add captions, data classifications, and the customer table relation.
+
+Acceptance: objects compile; insertion with triggers enabled initializes the entry correctly; cross-field validation works in both directions; calculating the FlowField excludes other customers and non-Pending entries and reflects status changes. No UI calls are introduced.
+
+### Milestone 2 — Standard posting and G/L event hooks
+
+- [ ] Subscribe to codeunit 80 `Sales-Post` to require `External Document No.` for sync-enabled customers before posting, skipping this custom check in preview mode.
+- [ ] Enqueue posted sales invoices and credit memos after posting, using the posted document identifiers.
+- [ ] Calculate actual cost from the relevant `Value Entry` records.
+- [ ] Extend the required posting records and propagate `External Sync Code` to `G/L Entry` through the journal posting pipeline.
+- [ ] Inspect `OnBeforePostSalesDoc`, `OnAfterPostSalesDoc`, and the available journal/G/L initialization publishers, including `OnAfterInitGenJnlLine` and `OnAfterInitGLEntry`; confirm their owning objects, signatures, and execution paths in the installed symbols.
+
+Acceptance: qualifying invoices and credit memos produce correct queue records; the missing-reference rule blocks actual posting; preview creates no persistent queue records; the sync code reaches the relevant G/L entries.
+
+Learning focus: how source documents become posted documents, how Value Entries relate to Item Ledger Entries and G/L Entries, and why posting and queue insertion must respect the same transaction boundary.
+
+### Milestone 3 — Headless batch processing and transaction isolation
+
+- [ ] Create a single-entry processor codeunit with `TableNo = "Sync Queue Entry"`; validate data, raise an error for invalid entries, and mark successful entries Processed.
+- [ ] Create a batch runner with `TableNo = "Job Queue Entry"` using `SetLoadFields` and `FindSet`.
+- [ ] Use the Boolean result of `Processor.Run(Rec)` to isolate each entry's failure; establish the required transaction boundaries before invoking it.
+- [ ] Capture `GetLastErrorText()` after failure and persist Failed status and error details without aborting the remaining batch.
+- [ ] Guard any optional UI calls with `GuiAllowed()` and publish a custom integration event after batch completion.
+
+Acceptance: a batch containing valid and invalid entries processes the valid entries, rolls back failed processing work, and retains failure details. Background execution requires no user interaction.
+
+### Milestone 4 — Permissions and headless automated tests
+
+- [ ] Create a permission set and apply appropriate indirect `TableData` permissions to subscriber and processor codeunits.
+- [ ] Use `Library - Sales`, `Library - Inventory`, and `Assert` to create test data without hardcoded master data IDs.
+- [ ] Test invoice and credit memo queueing and the customer Pending count.
+- [ ] Test validation blocking with `asserterror`.
+- [ ] Test per-record batch failure isolation and persisted error details.
+- [ ] Test G/L sync-code propagation.
+- [ ] Add a `MessageHandler` test for an optional GUI-allowed message path while retaining headless batch behavior.
+
+Acceptance: automated tests cover the posting and batch flows, required permissions are documented and verified, and applicable analyzer findings are reviewed.
+
+## Local development environment
+
+The setup below uses Docker for a local Business Central server and VS Code for building and debugging the extension.
 
 ## Prerequisites
 
@@ -96,7 +166,7 @@ AL: Build
 A successful build creates:
 
 ```text
-Default Publisher_win-business-central_1.0.0.0.app
+Default Publisher_WBC Business Central Sync_1.0.0.0.app
 ```
 
 That package file is generated output and is ignored by Git.
@@ -123,11 +193,7 @@ In VS Code:
 3. Select the launch configuration named `Your own server` if prompted.
 4. Sign in with the container username and password if VS Code requests credentials.
 
-The launch configuration starts page 22, **Customer List**. Opening the page runs [HelloWorld.al](HelloWorld.al), which displays:
-
-```text
-App published: Hello world
-```
+The development launch configuration does not open a startup page; the planned extension does not require a startup page.
 
 ## Stop or remove the environment
 

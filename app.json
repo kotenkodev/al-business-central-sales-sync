@@ -1,6 +1,6 @@
 {
-  "id": "c02fa1c5-7ef6-4df0-9270-eb279cbbb7d8",
-  "name": "win-business-central",
+  "id": "0be42b0c-afe7-4044-991b-bd96c352e99c",
+  "name": "WBC Business Central Sync",
   "publisher": "Default Publisher",
   "version": "1.0.0.0",
   "brief": "",
@@ -89,8 +89,8 @@
   "application": "29.1.57326.58076",
   "idRanges": [
     {
-      "from": 50100,
-      "to": 50149
+      "from": 50200,
+      "to": 50249
     }
   ],
   "resourceExposurePolicy": {
