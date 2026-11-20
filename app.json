@@ -1,0 +1,103 @@
+{
+  "id": "c02fa1c5-7ef6-4df0-9270-eb279cbbb7d8",
+  "name": "win-business-central",
+  "publisher": "Default Publisher",
+  "version": "1.0.0.0",
+  "brief": "",
+  "description": "",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [
+    {
+      "id": "a7bd3b4e-5469-4185-88b5-06745dd4c153",
+      "name": "Excise Taxes",
+      "publisher": "Microsoft",
+      "version": "29.1.57326.58076"
+    },
+    {
+      "id": "b3780cd9-f8f8-4a83-a4d5-0c2ad87b28af",
+      "name": "Sustainability",
+      "publisher": "Microsoft",
+      "version": "29.1.57326.58076"
+    },
+    {
+      "id": "93a71c5e-237e-47e8-835b-1a7f9e844f1b",
+      "name": "Create Product Information With Copilot",
+      "publisher": "Microsoft",
+      "version": "29.1.57326.58076"
+    },
+    {
+      "id": "bc7b3891-f61b-4883-bbb3-384cdef88bec",
+      "name": "Quality Management",
+      "publisher": "Microsoft",
+      "version": "29.1.57326.58076"
+    },
+    {
+      "id": "3099ffc7-4cf7-4df6-9b96-7e4bc2bb587c",
+      "name": "Subscription Billing",
+      "publisher": "Microsoft",
+      "version": "29.1.57326.58076"
+    },
+    {
+      "id": "23b1772f-b8b8-4e87-9339-9ff7cbb2364b",
+      "name": "Sales Order Agent",
+      "publisher": "Microsoft",
+      "version": "29.1.57326.58076"
+    },
+    {
+      "id": "1f32a50d-0057-4b95-b5df-cc04d7e89470",
+      "name": "Subcontracting",
+      "publisher": "Microsoft",
+      "version": "29.1.57326.58076"
+    },
+    {
+      "id": "c31ee575-3fc7-4388-98ee-d75aa2fc5f87",
+      "name": "Withholding Tax",
+      "publisher": "Microsoft",
+      "version": "29.1.57326.58076"
+    },
+    {
+      "id": "ec255f57-31d0-4ca2-b751-f2fa7c745abb",
+      "name": "Shopify Connector",
+      "publisher": "Microsoft",
+      "version": "29.1.57326.58076"
+    },
+    {
+      "id": "c526b3e9-b8ca-4683-81ba-fcd5f6b1472a",
+      "name": "Sales and Inventory Forecast",
+      "publisher": "Microsoft",
+      "version": "29.1.57326.58076"
+    },
+    {
+      "id": "dd0be2ea-f733-4d65-bb34-a28f4624fb14",
+      "name": "Library Assert",
+      "publisher": "Microsoft",
+      "version": "29.1.0.0"
+    },
+    {
+      "id": "d852d5d2-a39d-4179-baeb-f99a19e32510",
+      "name": "Application Test Library",
+      "publisher": "Microsoft",
+      "version": "29.1.0.0"
+    }
+  ],
+  "screenshots": [],
+  "platform": "1.0.0.0",
+  "application": "29.1.57326.58076",
+  "idRanges": [
+    {
+      "from": 50100,
+      "to": 50149
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "runtime": "18.0",
+  "features": ["NoImplicitWith"]
+}

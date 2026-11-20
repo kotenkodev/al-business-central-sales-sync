@@ -1,0 +1,8 @@
+$kind: http-request
+name: Get Company by ID
+method: GET
+order: 3000
+url: '{{base_url}}/vadym/inventory/v1.0/companies({{company_id}})?tenant={{tenant_id}}'
+headers:
+  - key: Accept
+    value: application/json

@@ -1,0 +1,13 @@
+$kind: collection
+name: Business Central Setup
+description: |-
+  Helper requests for discovering your local Docker Business Central instance.
+  Use these to find your company ID, available APIs, and verify connectivity.
+  Run "Get Companies" first, then copy the company id into the environment variable company_id.
+auth:
+  type: basic
+  credentials:
+    - key: username
+      value: '{{username}}'
+    - key: password
+      value: '{{password}}'

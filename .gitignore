@@ -1,0 +1,11 @@
+# AL dependencies and generated packages
+.alpackages/
+.alcache/
+*.app
+*.appPackage
+
+# VS Code generated state
+.vscode/rad.json
+
+# Downloaded editor tooling
+*.vsix

@@ -1,0 +1,14 @@
+name: Business Central
+values:
+  - key: base_url
+    value: 'http://test:7048/BC/api'
+  - key: tenant_id
+    value: default
+  - key: company_id
+    value: 1d23410a-46de-f111-925e-7ced8d9d91eb
+  - key: username
+    value: admin
+  - key: password
+    value: BcS@ndb0x2026!
+  - key: item_note_id
+    value: ''

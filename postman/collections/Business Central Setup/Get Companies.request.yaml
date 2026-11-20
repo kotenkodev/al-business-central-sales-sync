@@ -1,0 +1,23 @@
+$kind: http-request
+name: Get Companies
+method: GET
+order: 1000
+url: '{{base_url}}/vadym/inventory/v1.0/companies?tenant={{tenant_id}}'
+headers:
+  - key: Accept
+    value: application/json
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const res = pm.response.json();
+      const companies = res.value;
+      if (companies && companies.length > 0) {
+          pm.environment.set("company_id", companies[0].id);
+          console.log("company_id set to: " + companies[0].id);
+          console.log("Company name: " + companies[0].name);
+          if (companies.length > 1) {
+              console.log("Multiple companies found:");
+              companies.forEach(c => console.log(" - " + c.name + " | " + c.id));
+          }
+      }
