@@ -23,16 +23,18 @@ The current manifest names the app `WBC Business Central Sync`, targets applicat
 
 ### Milestone 1 — Data layer and triggers
 
-- [ ] Create enum `Sync Queue Status`: Pending, Processed, Failed.
-- [ ] Create table `Sync Queue Entry` with an auto-incrementing entry number, document type/number, customer number, amount, cost amount, status, created/processed timestamps, and error message.
-- [ ] Add secondary keys for status-based processing and customer/status filtering.
-- [ ] Initialize Pending status and creation time in `OnInsert`; clear processing time and error text.
-- [ ] Extend `Customer` with `External Sync Enabled` and `External Sync Code` (`Code[20]`).
-- [ ] Validate that a nonblank sync code requires sync to be enabled; prevent disabling sync until the code is cleared. Enabling with a blank code is allowed at this stage.
-- [ ] Add a non-editable `Pending Sync Count` FlowField counting this customer's Pending queue entries.
-- [ ] Add captions, data classifications, and the customer table relation.
+- [x] Create enum `Sync Queue Status`: Pending, Processed, Failed.
+- [x] Create table `Sync Queue Entry` with an auto-incrementing entry number, document type/number, customer number, amount, cost amount, status, created/processed timestamps, and error message.
+- [x] Add secondary keys for status-based processing and customer/status filtering.
+- [x] Default Status to Pending with `InitValue`; in `OnInsert`, populate the creation timestamp only when blank. Preserve explicitly supplied status, timestamps, and error details.
+- [x] Extend `Customer` with `External Sync Enabled` and `External Sync Code` (`Code[20]`).
+- [x] Validate that a nonblank sync code requires sync to be enabled; prevent disabling sync until the code is cleared. Enabling with a blank code is allowed at this stage.
+- [x] Add a non-editable `Pending Sync Count` FlowField counting this customer's Pending queue entries.
+- [x] Add captions, data classifications, and the customer table relation.
 
 Acceptance: objects compile; insertion with triggers enabled initializes the entry correctly; cross-field validation works in both directions; calculating the FlowField excludes other customers and non-Pending entries and reflects status changes. No UI calls are introduced.
+
+Milestone 1 checks are in `tests/WBCSyncQueueDataTests.Codeunit.al` (codeunit 50203). Run through a Business Central test runner with test isolation enabled so database changes are rolled back. These tests use generated customers, require the declared test-library dependencies, and do not require custom pages. Building compiles the tests but does not execute them.
 
 ### Milestone 2 — Standard posting and G/L event hooks
 
